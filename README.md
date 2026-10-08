@@ -1,5 +1,7 @@
 # 英语书伴读
 
+[中文](#英语书伴读) | [English](#english-book-companion)
+
 原生 Android 手机／平板应用：导入可提取文字的 PDF、EPUB，逐段显示英文和中文译文，查询单词或短语，播放英式／美式发音，并管理生词本。
 
 ## 构建
@@ -29,3 +31,49 @@ ECDICT 来源：https://github.com/skywind3000/ECDICT （MIT）。例句来源�
 ## 本地验证环境
 
 已使用 JDK 17 和 Android SDK 35 运行 `./gradlew testDebugUnitTest assembleDebugAndroidTest assembleDebug`。本地单元测试（含 Robolectric 启动、手机和平板界面测试）和两个 APK 的编译均通过。当前还没有已连接的设备；`connectedDebugAndroidTest` 及手机、平板上的实际交互需要模拟器或真机运行。
+
+---
+
+# English Book Companion
+
+[中文](#英语书伴读) | [English](#english-book-companion)
+
+A native Android app for phones and tablets. Import PDFs with extractable text and EPUB books, read English paragraphs with Chinese translations, look up words or phrases, listen to British and American pronunciation, and keep a vocabulary notebook.
+
+## Build
+
+Open the project in Android Studio, install Android SDK 35 and JDK 17, and sync Gradle. Run `./gradlew testDebugUnitTest assembleDebug` or launch the app on a device. Android 8.0 (API 26) or later is required.
+
+Translating book paragraphs for the first time requires downloading the ML Kit English–Chinese translation models. Dictionary lookups first use the bundled ECDICT offline database. Pronunciation first uses the system's British or American offline text-to-speech (TTS) voice; if unavailable, the app uses cached audio or downloads it.
+
+## Usage
+
+The button at the top of the reading screen toggles Chinese translations for all paragraphs. Translations are shown by default, and the preference is saved locally across app launches. Turning translations off hides translation progress, errors, and retry buttons, and stops starting new paragraph translations. Existing translations remain stored locally and appear again when enabled.
+
+Pronunciation buttons wait for the system speech engine to initialize and prefer an offline voice with the requested accent. If initialization fails or times out, the accent is unavailable, or speech synthesis reports an error, the app falls back to Youdao's public pronunciation endpoint, `https://dict.youdao.com/dictvoice` (`type=1` for British, `type=2` for American). Successfully downloaded MP3 files are stored separately for each accent in the app's private directory. This public endpoint has no stability guarantee. Failures show an error dialog with a link to system speech settings. Without a system English voice or matching cached audio, the first playback requires an internet connection; cached audio can be reused offline. Playback uses media volume. The app prompts you to increase it when muted, and sound may play through headphones when Bluetooth is connected.
+
+On the bookshelf, tap “导入 PDF / EPUB” (Import PDF / EPUB) and select a file. The app automatically saves the current paragraph and resumes from that position when you reopen the book. Tap “目录” (Contents) at the top right of the reading screen to jump to a chapter's start. EPUB books use their embedded NCX or navigation table of contents when available; PDFs use page numbers. Previously imported EPUB books have their chapter markers updated automatically when opened, while keeping saved translations and reading progress.
+
+Tap an English word to look it up. The lookup panel also provides shortcuts for nearby phrases. Long-press to select text, or enter a query using “查询单词或短语” (Look up a word or phrase) at the top. The panel shows definitions, pronunciation, external example sentences, and a button to add the entry to your vocabulary notebook. The notebook supports searching, viewing, and deleting entries, with an undo option after deletion.
+
+Lookup order is vocabulary notebook cache → ECDICT offline dictionary → online services. The offline dictionary contains 768,739 entries with Chinese definitions, including some phrases, and 66,613 word-form mappings. Included words and phrases display Chinese definitions, available English definitions, and phonetic transcriptions without network requests or translation-model downloads. Some entries have no phonetic transcription or English definition.
+
+The bundled external examples come from Open English WordNet 2025. They contain 48,583 entry-to-example records covering 23,334 words or phrases. Examples are filtered to include the queried word or one of its forms, with at most two shown per lookup. If none match, the app displays “暂无外部例句” (No external examples available). When the ML Kit English–Chinese translation models are already installed, Chinese example translations are added in the background. Lookup and saving do not wait for translation. The vocabulary notebook stores definitions, examples, translations, and example sources in a local database for later viewing.
+
+Words or phrases missing from the offline dictionary use Free Dictionary API, Tatoeba, and on-device translation as online fallbacks. “重新查询” (Look up again) bypasses the saved vocabulary entry but still prefers the offline dictionary. Scanned or image-only PDFs have no extractable text; this version does not support OCR. PDF paragraph reconstruction depends on the original document's layout.
+
+## Offline Data and Rebuilding
+
+ECDICT comes from [skywind3000/ECDICT](https://github.com/skywind3000/ECDICT) under the MIT license. Examples come from [Open English WordNet](https://en-word.net/), credited to the Open English WordNet Team and Princeton WordNet, under CC BY 4.0 and the original WordNet license. License files are bundled in the APK under `assets/licenses`. The example data is filtered, matched to word forms, and indexed; the original sentences are unchanged.
+
+Download ECDICT's `ecdict.csv` and [english-wordnet-2025-json.zip](https://en-word.net/static/english-wordnet-2025-json.zip), then run:
+
+```sh
+python3 scripts/build_offline_dictionary.py /path/ecdict.csv /path/english-wordnet-2025-json.zip
+```
+
+This rebuilds `app/src/main/assets/dictionary-v1.db` and its statistics file. On the first lookup, the dictionary is copied to the app's private directory in the background and then opened read-only. User vocabulary entries use a separate Room database. The bundled dictionary is approximately 81 MiB and requires roughly the same amount of additional private storage after installation.
+
+## Local Validation
+
+The project has been checked with JDK 17 and Android SDK 35 using `./gradlew testDebugUnitTest assembleDebugAndroidTest assembleDebug`. Local unit tests, including Robolectric startup and phone/tablet UI tests, and compilation of both APKs passed. No device was connected for that validation. Running `connectedDebugAndroidTest` and verifying actual interactions on phones and tablets requires an emulator or physical device.
